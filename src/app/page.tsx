@@ -5,7 +5,7 @@ import { DefaultChatTransport } from "ai";
 
 import { useEffect, useRef, useState } from "react";
 import { Send, User, Sparkles, AlertCircle, RefreshCcw, ExternalLink, Bot, Mic, MicOff, Volume2, Square } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -74,6 +74,55 @@ const getMessageText = (m: any) => {
     return m.parts.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('');
   }
   return '';
+};
+
+const CustomCursor = () => {
+  const cursorX = useMotionValue(-100);
+  const cursorY = useMotionValue(-100);
+  
+  const springConfig = { damping: 30, stiffness: 200, mass: 0.5 };
+  const cursorXSpring = useSpring(cursorX, springConfig);
+  const cursorYSpring = useSpring(cursorY, springConfig);
+
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    // Only enable custom cursor on non-touch devices
+    if (window.matchMedia("(pointer: fine)").matches) {
+      setIsDesktop(true);
+    }
+    
+    const moveCursor = (e: MouseEvent) => {
+      cursorX.set(e.clientX);
+      cursorY.set(e.clientY);
+    };
+    window.addEventListener("mousemove", moveCursor);
+    return () => window.removeEventListener("mousemove", moveCursor);
+  }, [cursorX, cursorY]);
+
+  if (!isDesktop) return null;
+
+  return (
+    <>
+      {/* Trailing Glowing Aura */}
+      <motion.div
+        className="pointer-events-none fixed top-0 left-0 z-[9998] h-[400px] w-[400px] -ml-[200px] -mt-[200px] rounded-full mix-blend-screen opacity-60"
+        style={{
+          background: "radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(99,102,241,0.05) 30%, transparent 70%)",
+          x: cursorXSpring,
+          y: cursorYSpring,
+        }}
+      />
+      {/* Crisp Center Dot */}
+      <motion.div
+        className="pointer-events-none fixed top-0 left-0 z-[9999] h-2 w-2 -ml-1 -mt-1 rounded-full bg-white/80 shadow-[0_0_10px_rgba(255,255,255,0.8)]"
+        style={{
+          x: cursorX,
+          y: cursorY,
+        }}
+      />
+    </>
+  );
 };
 
 // ── Main Page ─────────────────────────────────────────────────────────────
@@ -317,12 +366,13 @@ export default function ChatPage() {
 
   return (
     <div
-      className="h-screen w-full text-gray-200 font-sans selection:bg-[#8b5cf6]/30 flex overflow-hidden relative"
+      className="h-screen w-full text-gray-200 font-sans selection:bg-[#8b5cf6]/30 flex overflow-hidden relative cursor-none"
       style={{
         backgroundColor: '#050308',
         backgroundImage: 'radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 40%), radial-gradient(circle at 85% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 40%)'
       }}
     >
+      <CustomCursor />
 
       {/* Sidebar Overlay (Mobile) */}
       {isSidebarOpen && (
