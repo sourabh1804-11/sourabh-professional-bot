@@ -18,22 +18,16 @@ export function getGeminiClient(): GoogleGenerativeAI {
   return genAIInstance;
 }
 
-import { google } from "@ai-sdk/google";
-
-/**
- * Returns the chat model for conversational responses.
- */
-export function getChatModel() {
-  return getGeminiClient().getGenerativeModel({
-    model: "gemini-2.0-flash",
-  });
-}
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 
 /**
  * Returns the Vercel AI SDK compatible model for streamText.
  */
 export function getVercelChatModel() {
-  return google("gemini-2.0-flash");
+  const google = createGoogleGenerativeAI({
+    apiKey: process.env.GEMINI_API_KEY,
+  });
+  return google("gemini-2.5-flash");
 }
 
 /**
@@ -41,7 +35,7 @@ export function getVercelChatModel() {
  */
 export function getEmbeddingModel() {
   return getGeminiClient().getGenerativeModel({
-    model: "text-embedding-004",
+    model: "gemini-embedding-2",
   });
 }
 
@@ -50,6 +44,6 @@ export function getEmbeddingModel() {
  */
 export function getClassificationModel() {
   return getGeminiClient().getGenerativeModel({
-    model: "gemini-2.0-flash-lite",
+    model: "gemini-2.5-flash-lite",
   });
 }

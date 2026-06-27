@@ -33,7 +33,7 @@ interface Chunk {
  * Generates an embedding for a piece of text using Gemini's text-embedding-004.
  */
 async function generateEmbedding(text: string): Promise<number[]> {
-  const model = genAI.getGenerativeModel({ model: "text-embedding-004" });
+  const model = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
   const result = await model.embedContent(text);
   return result.embedding.values;
 }

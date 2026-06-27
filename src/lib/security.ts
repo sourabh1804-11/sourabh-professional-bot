@@ -41,9 +41,9 @@ function getRateLimiter(): Ratelimit | null {
   if (!ratelimit) {
     ratelimit = new Ratelimit({
       redis: Redis.fromEnv(),
-      limiter: Ratelimit.slidingWindow(25, "24 h"),
+      limiter: Ratelimit.slidingWindow(14, "1 m"),
       analytics: true,
-      prefix: "asksourabh:ratelimit",
+      prefix: "asksourabh:global_ratelimit",
     });
   }
 
@@ -122,9 +122,10 @@ export async function runSecurityChecks(
   }
 
   // Check 3: Rate limiting (cost: ~1ms, Redis call)
+  // We use a global limit key here to strictly enforce the Google Free Tier (15 RPM max)
   const limiter = getRateLimiter();
   if (limiter) {
-    const { success, remaining, reset } = await limiter.limit(userIp);
+    const { success, remaining, reset } = await limiter.limit("global_api_limit");
     if (!success) {
       return {
         passed: false,

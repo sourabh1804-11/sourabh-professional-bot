@@ -27,7 +27,14 @@ export async function POST(req: Request) {
     if (latestMessage.role !== "user") {
       return NextResponse.json({ error: "Last message must be from user" }, { status: 400 });
     }
-    const query = latestMessage.content;
+    const query = latestMessage.content || 
+      (latestMessage.parts 
+        ? latestMessage.parts.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') 
+        : '');
+
+    if (!query || query.trim() === '') {
+      return NextResponse.json({ error: 'Message text is empty' }, { status: 400 });
+    }
 
     // ── LAYER 2: Security & Guardrails ──────────────────────────────────────
     const securityResult = await runSecurityChecks(query, userIp);
@@ -62,7 +69,10 @@ export async function POST(req: Request) {
     // ── LAYER 6: LLM Generation & Logging (Streaming) ───────────────────────
     
     // We only want the last 5 messages to avoid context bloat
-    const trimmedMessages = messages.slice(-5);
+    const trimmedMessages = messages.slice(-5).map((m: any) => ({
+      role: m.role,
+      content: m.content || (m.parts ? m.parts.filter((p: any) => p.type === 'text').map((p: any) => p.text).join('') : '')
+    }));
 
     const model = getVercelChatModel();
     const result = await streamText({
@@ -88,7 +98,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return (result as any).toDataStreamResponse?.() || (result as any).toTextStreamResponse();
+    return result.toUIMessageStreamResponse();
 
   } catch (error) {
     console.error("[Chat API] Error processing request:", error);

@@ -15,13 +15,11 @@ CREATE TABLE IF NOT EXISTS documents (
   category    TEXT NOT NULL,       -- 'resume', 'portfolio', 'blog', 'linkedin', 'github'
   source      TEXT,                -- original file or URL
   metadata    JSONB DEFAULT '{}',  -- flexible: { title, section, date, parent_chunk_id }
-  embedding   VECTOR(768),         -- Gemini text-embedding-004 dimension
+  embedding   VECTOR(3072),         -- Gemini gemini-embedding-2 dimension
   created_at  TIMESTAMPTZ DEFAULT NOW()
 );
 
--- HNSW index (preferred over IVFFlat for <100K vectors — faster, no training step)
-CREATE INDEX IF NOT EXISTS documents_embedding_idx
-  ON documents USING hnsw (embedding vector_cosine_ops);
+-- (HNSW index removed: 3072 dimensions exceeds the 2000 dimension limit for indexes. Exact search is used instead, which is perfect for this dataset size.)
 
 -- Category index for filtered searches
 CREATE INDEX IF NOT EXISTS documents_category_idx
@@ -31,7 +29,7 @@ CREATE INDEX IF NOT EXISTS documents_category_idx
 -- Supports multi-category filtering + similarity threshold
 
 CREATE OR REPLACE FUNCTION match_documents(
-  query_embedding VECTOR(768),
+  query_embedding VECTOR(3072),
   match_count INT DEFAULT 8,
   filter_categories TEXT[] DEFAULT NULL,
   similarity_threshold FLOAT DEFAULT 0.3
