@@ -120,6 +120,21 @@ export default function ChatPage() {
 
     const recognition = new SpeechRecognition();
     recognitionRef.current = recognition;
+
+    // Add Grammar List to bias recognition towards domain-specific terms
+    const SpeechGrammarList = (window as any).SpeechGrammarList || (window as any).webkitSpeechGrammarList;
+    if (SpeechGrammarList) {
+      const speechRecognitionList = new SpeechGrammarList();
+      const keywords = [
+        'Sourabh', 'Singhal', 'Genpact', 'Medallion', 'Architecture', 'Data Engineer', 
+        'AWS', 'GCP', 'Azure', 'Databricks', 'Snowflake', 'BigQuery', 'Spark', 'PySpark', 
+        'resume', 'experience', 'portfolio', 'projects', 'skills', 'education', 'Python', 'SQL'
+      ];
+      const grammar = '#JSGF V1.0; grammar keywords; public <keyword> = ' + keywords.join(' | ') + ' ;';
+      speechRecognitionList.addFromString(grammar, 1);
+      recognition.grammars = speechRecognitionList;
+    }
+
     // Using en-IN to better recognize Indian English accents (given the project/timezone)
     recognition.lang = 'en-IN'; 
     // Setting interimResults to false forces the browser to wait for a high-confidence, fully processed sentence.
