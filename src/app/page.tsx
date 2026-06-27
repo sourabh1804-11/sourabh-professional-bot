@@ -76,6 +76,21 @@ const getMessageText = (m: any) => {
   return '';
 };
 
+const extractFollowUps = (text: string) => {
+  const marker = "💡 **Suggested Follow-ups:**";
+  const index = text.indexOf(marker);
+  if (index !== -1) {
+    const mainText = text.substring(0, index).trim();
+    const followUpText = text.substring(index + marker.length).trim();
+    const questions = followUpText.split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('*') || line.startsWith('-'))
+      .map(line => line.substring(1).trim());
+    return { mainText, questions };
+  }
+  return { mainText: text, questions: [] };
+};
+
 const CustomCursor = () => {
   const cursorX = useMotionValue(-100);
   const cursorY = useMotionValue(-100);
@@ -123,6 +138,101 @@ const CustomCursor = () => {
       />
     </>
   );
+};
+
+const ParticleBackground = () => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let particles: any[] = [];
+    let animationFrameId: number;
+
+    const init = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+      
+      particles = [];
+      const numParticles = Math.floor((width * height) / 5000); // Responsive density
+      for (let i = 0; i < numParticles; i++) {
+        particles.push({
+          angle: Math.random() * Math.PI * 2,
+          radius: Math.random() * Math.max(width, height) * 1.2,
+          speed: (Math.random() * 0.0008) + 0.0002, // Slow rotation
+          size: Math.random() * 1.5 + 0.5, // Thickness
+          dashLength: Math.random() * 5 + 3 // Length of the dash
+        });
+      }
+    };
+
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
+      
+      const centerX = width * 0.4; // Slightly offset center
+      const centerY = height * 0.5;
+
+      particles.forEach(p => {
+        p.angle += p.speed;
+        
+        const x = centerX + Math.cos(p.angle) * p.radius;
+        const y = centerY + Math.sin(p.angle) * p.radius;
+        
+        if (x < -20 || x > width + 20 || y < -20 || y > height + 20) return;
+
+        const ratio = Math.max(0, Math.min(1, x / width));
+        
+        // Color gradient from left (blue) to right (orange/red)
+        let r, g, b;
+        if (ratio < 0.5) {
+          const t = ratio * 2;
+          r = Math.floor(59 + t * (139 - 59));
+          g = Math.floor(130 - t * (130 - 92));
+          b = Math.floor(246);
+        } else {
+          const t = (ratio - 0.5) * 2;
+          r = Math.floor(139 + t * (239 - 139));
+          g = Math.floor(92 - t * (92 - 68));
+          b = Math.floor(246 - t * (246 - 68));
+        }
+        
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
+        
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(p.angle + Math.PI / 2); // Align tangentially
+        
+        ctx.beginPath();
+        if (ctx.roundRect) {
+          ctx.roundRect(-p.dashLength/2, -p.size/2, p.dashLength, p.size, p.size/2);
+        } else {
+          ctx.rect(-p.dashLength/2, -p.size/2, p.dashLength, p.size);
+        }
+        ctx.fill();
+        ctx.restore();
+      });
+
+      animationFrameId = requestAnimationFrame(draw);
+    };
+
+    init();
+    draw();
+
+    window.addEventListener('resize', init);
+    return () => {
+      window.removeEventListener('resize', init);
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className="fixed inset-0 z-0 pointer-events-none opacity-70 mix-blend-screen" />;
 };
 
 // ── Main Page ─────────────────────────────────────────────────────────────
@@ -177,6 +287,7 @@ export default function ChatPage() {
 
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const [isFocused, setIsFocused] = useState(false);
 
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
 
@@ -369,9 +480,9 @@ export default function ChatPage() {
       className="h-screen w-full text-gray-200 font-sans selection:bg-[#8b5cf6]/30 flex overflow-hidden relative cursor-none"
       style={{
         backgroundColor: '#050308',
-        backgroundImage: 'radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 40%), radial-gradient(circle at 85% 100%, rgba(168, 85, 247, 0.08) 0%, transparent 40%)'
       }}
     >
+      {messages.length === 0 && <ParticleBackground />}
       <CustomCursor />
 
       {/* Sidebar Overlay (Mobile) */}
@@ -425,7 +536,7 @@ export default function ChatPage() {
         {/* Header */}
         <header className="px-4 md:px-6 py-4 flex items-center shrink-0 absolute top-0 w-full z-10 border-b border-white/[0.02] bg-[#050308]/50 backdrop-blur-sm">
           <button
-            className="mr-4 text-gray-400 hover:text-white transition-colors flex items-center justify-center p-1 rounded-md hover:bg-white/[0.05]"
+            className="mr-4 text-gray-300 hover:text-white transition-colors flex items-center justify-center p-1 rounded-md hover:bg-white/[0.05]"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
           >
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
@@ -449,25 +560,31 @@ export default function ChatPage() {
                 <h2 className="text-5xl md:text-6xl font-bold tracking-tight bg-gradient-to-r from-[#6366f1] to-[#8b5cf6] bg-clip-text text-transparent">
                   Curiosity Driven!
                 </h2>
-                <div className="flex flex-col gap-1">
-                  <h2 className="text-4xl md:text-5xl font-medium tracking-tight text-gray-300">
+                <div className="flex flex-col gap-1 text-center md:text-left">
+                  <h1 className="text-4xl md:text-5xl font-medium tracking-tight text-white drop-shadow-sm">
                     What would you like to know?
-                  </h2>
-                  <p className="text-[10px] text-gray-500 uppercase tracking-widest">
+                  </h1>
+                  <p className="text-xs md:text-sm text-gray-200 uppercase tracking-widest font-medium mt-1">
                     about Sourabh's Professional life
                   </p>
                 </div>
               </div>
 
               {/* Centered Input Box */}
-              <form onSubmit={onSubmit} className="relative flex items-center bg-white/[0.03] backdrop-blur-md rounded-[24px] border border-white/[0.08] shadow-[0_0_30px_rgba(99,102,241,0.05)] focus-within:border-[#6366f1]/30 transition-colors">
-                <Input
-                  value={input}
-                  onChange={handleInputChange}
-                  placeholder="Ask about Sourabh's experience or projects..."
-                  className="flex-1 bg-transparent border-0 text-gray-200 placeholder:text-gray-500 h-[60px] pl-6 pr-[96px] focus-visible:ring-0 text-[16px] rounded-[24px]"
-                  disabled={isLoading || quotaError}
-                />
+              <div className="relative w-full z-10">
+                {/* Spotlight Glow */}
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] max-w-[800px] h-[250px] rounded-full blur-[100px] pointer-events-none -z-10 transition-all duration-700 ${isFocused ? 'bg-[#6366f1]/25 scale-110' : 'bg-[#6366f1]/10 scale-100'}`} />
+                
+                <form onSubmit={onSubmit} className="relative flex items-center bg-white/[0.03] backdrop-blur-md rounded-[24px] border border-white/[0.08] shadow-[0_0_30px_rgba(99,102,241,0.05)] focus-within:border-[#6366f1]/40 focus-within:shadow-[0_0_40px_rgba(99,102,241,0.15)] transition-all duration-500">
+                  <Input
+                    value={input}
+                    onChange={handleInputChange}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                    placeholder="Ask about Sourabh's experience or projects..."
+                    className="flex-1 bg-transparent border-0 text-white placeholder:text-gray-400 h-[60px] pl-6 pr-[96px] focus-visible:ring-0 text-[16px] rounded-[24px]"
+                    disabled={isLoading || quotaError}
+                  />
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                   <Button
                     type="button"
@@ -499,6 +616,7 @@ export default function ChatPage() {
                   </Button>
                 </div>
               </form>
+              </div>
 
               {/* Suggestions */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full pt-4">
@@ -534,7 +652,7 @@ export default function ChatPage() {
           <div className="flex-1 overflow-hidden flex flex-col pt-16 relative z-0">
 
             <ScrollArea className="flex-1 w-full min-h-0">
-              <div className="max-w-3xl mx-auto w-full px-4 pt-4 md:pt-8 pb-8 space-y-8">
+              <div className="max-w-4xl mx-auto w-full px-4 pt-4 md:pt-8 pb-8 space-y-8">
                 <AnimatePresence initial={false}>
                   {messages.map((m: any) => (
                     <motion.div
@@ -563,11 +681,36 @@ export default function ChatPage() {
                             <p className="whitespace-pre-wrap">{getMessageText(m)}</p>
                           ) : (
                             <div className="flex flex-col gap-2">
-                              <div className="prose prose-invert prose-p:leading-relaxed prose-pre:bg-white/[0.03] prose-pre:border prose-pre:border-white/[0.08] max-w-none prose-headings:text-gray-100 prose-a:text-[#8b5cf6] prose-a:no-underline hover:prose-a:underline">
+                              <div className="prose prose-invert prose-p:leading-relaxed prose-pre:bg-white/[0.03] prose-pre:border prose-pre:border-white/[0.08] max-w-none prose-headings:text-white prose-p:text-gray-100 prose-strong:text-white prose-a:text-[#8b5cf6] prose-a:no-underline hover:prose-a:underline text-gray-100">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                  {getMessageText(m)}
+                                  {extractFollowUps(getMessageText(m)).mainText}
                                 </ReactMarkdown>
                               </div>
+                              
+                              {extractFollowUps(getMessageText(m)).questions.length > 0 && (
+                                <div className="mt-2 flex flex-col gap-2">
+                                  <span className="text-xs font-semibold uppercase tracking-wider text-[#a78bfa] flex items-center gap-1.5">
+                                    <Sparkles size={12} /> Suggested Follow-ups
+                                  </span>
+                                  <div className="flex flex-wrap gap-2">
+                                    {extractFollowUps(getMessageText(m)).questions.map((q, i) => (
+                                      <button
+                                        key={i}
+                                        onClick={() => {
+                                          if (!isLoading) {
+                                            setQuotaError(null);
+                                            sendMessage({ text: q }, { body: { userId, chatId } });
+                                          }
+                                        }}
+                                        disabled={isLoading || quotaError !== null}
+                                        className="text-left text-sm bg-[#8b5cf6]/10 hover:bg-[#8b5cf6]/20 border border-[#8b5cf6]/20 text-gray-200 hover:text-white px-3 py-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                      >
+                                        {q}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -603,14 +746,19 @@ export default function ChatPage() {
             </ScrollArea>
 
             {/* Bottom Input Area for Chat State */}
-            <div className="w-full shrink-0 pt-4 pb-6 md:pb-8 px-4 border-t border-white/[0.05] bg-[#050308]/80 backdrop-blur-xl">
-              <div className="max-w-3xl mx-auto">
-                <form onSubmit={onSubmit} className="relative flex items-center bg-white/[0.03] rounded-[24px] border border-white/[0.08] shadow-[0_0_20px_rgba(0,0,0,0.5)] focus-within:border-[#6366f1]/30 transition-colors">
+            <div className="w-full shrink-0 pt-4 pb-6 md:pb-8 px-4 border-t border-white/[0.05] bg-[#050308]/80 backdrop-blur-xl relative">
+              {/* Bottom Spotlight Glow */}
+              <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[900px] h-[200px] rounded-t-full blur-[100px] pointer-events-none -z-10 transition-all duration-700 ${isFocused ? 'bg-[#6366f1]/20' : 'bg-[#6366f1]/5'}`} />
+              
+              <div className="max-w-4xl mx-auto relative z-10 px-0 md:px-4">
+                <form onSubmit={onSubmit} className="relative flex items-center bg-white/[0.03] rounded-[24px] border border-white/[0.08] shadow-[0_0_20px_rgba(0,0,0,0.5)] focus-within:border-[#6366f1]/40 focus-within:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition-all duration-500">
                   <Input
                     value={input}
                     onChange={handleInputChange}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
                     placeholder="Ask AskSourabh..."
-                    className="flex-1 bg-transparent border-0 text-gray-200 placeholder:text-gray-500 h-[60px] pl-6 pr-[96px] focus-visible:ring-0 text-[15px] rounded-[24px]"
+                    className="flex-1 bg-transparent border-0 text-white placeholder:text-gray-400 h-[60px] pl-6 pr-[96px] focus-visible:ring-0 text-[15px] rounded-[24px]"
                     disabled={isLoading || quotaError}
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">

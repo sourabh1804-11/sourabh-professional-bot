@@ -79,6 +79,7 @@ export async function POST(req: Request) {
       model,
       system: finalSystemPrompt,
       messages: trimmedMessages,
+      maxTokens: 600, // Enforce conciseness
       onFinish: async (completion) => {
         // Fire-and-forget logging
         const latencyMs = Date.now() - startTime;
