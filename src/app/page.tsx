@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, User, Sparkles, AlertCircle, RefreshCcw, ExternalLink, Bot, Mic, MicOff } from "lucide-react";
+import { Send, User, Sparkles, AlertCircle, RefreshCcw, ExternalLink, Bot, Mic, MicOff, Volume2, Square } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -128,6 +128,28 @@ export default function ChatPage() {
 
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+
+  const toggleSpeak = (id: string, text: string) => {
+    const synth = window.speechSynthesis;
+    if (speakingMessageId === id) {
+      synth.cancel();
+      setSpeakingMessageId(null);
+    } else {
+      synth.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      
+      const voices = synth.getVoices();
+      const preferredVoice = voices.find(v => v.lang.includes('en-IN') || v.lang.includes('en-GB') || v.lang.includes('en-US'));
+      if (preferredVoice) utterance.voice = preferredVoice;
+
+      utterance.onend = () => setSpeakingMessageId(null);
+      utterance.onerror = () => setSpeakingMessageId(null);
+      synth.speak(utterance);
+      setSpeakingMessageId(id);
+    }
+  };
 
   const toggleListening = () => {
     if (isListening && recognitionRef.current) {
@@ -465,10 +487,22 @@ export default function ChatPage() {
                           {m.role === "user" ? (
                             <p className="whitespace-pre-wrap">{getMessageText(m)}</p>
                           ) : (
-                            <div className="prose prose-invert prose-p:leading-relaxed prose-pre:bg-white/[0.03] prose-pre:border prose-pre:border-white/[0.08] max-w-none prose-headings:text-gray-100 prose-a:text-[#8b5cf6] prose-a:no-underline hover:prose-a:underline">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                {getMessageText(m)}
-                              </ReactMarkdown>
+                            <div className="flex flex-col gap-2">
+                              <div className="prose prose-invert prose-p:leading-relaxed prose-pre:bg-white/[0.03] prose-pre:border prose-pre:border-white/[0.08] max-w-none prose-headings:text-gray-100 prose-a:text-[#8b5cf6] prose-a:no-underline hover:prose-a:underline">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                  {getMessageText(m)}
+                                </ReactMarkdown>
+                              </div>
+                              <div className="flex items-center mt-1">
+                                <button
+                                  onClick={() => toggleSpeak(m.id, getMessageText(m))}
+                                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] transition-colors ${speakingMessageId === m.id ? 'bg-[#8b5cf6]/20 text-[#8b5cf6]' : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.05]'}`}
+                                  title={speakingMessageId === m.id ? "Stop Reading" : "Read Aloud"}
+                                >
+                                  {speakingMessageId === m.id ? <Square size={12} fill="currentColor" /> : <Volume2 size={12} />}
+                                  {speakingMessageId === m.id ? "Stop" : "Read aloud"}
+                                </button>
+                              </div>
                             </div>
                           )}
                         </div>
