@@ -140,8 +140,20 @@ export default function ChatPage() {
       synth.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       
+      // Make voice softer and more polite
+      utterance.pitch = 1.1; // Slightly higher pitch often sounds gentler
+      utterance.rate = 0.9;  // Slightly slower pace sounds more thoughtful and polite
+      
       const voices = synth.getVoices();
-      const preferredVoice = voices.find(v => v.lang.includes('en-IN') || v.lang.includes('en-GB') || v.lang.includes('en-US'));
+      // Prefer female/softer voices if available, falling back to local English
+      const preferredVoice = voices.find(v => 
+        v.name.includes('Female') || 
+        v.name.includes('Zira') || 
+        v.name.includes('Samantha') || 
+        v.name.includes('Google UK English Female') ||
+        (v.lang.includes('en-IN') && v.name.includes('Female'))
+      ) || voices.find(v => v.lang.includes('en-IN') || v.lang.includes('en-GB') || v.lang.includes('en-US'));
+      
       if (preferredVoice) utterance.voice = preferredVoice;
 
       utterance.onend = () => setSpeakingMessageId(null);
@@ -300,6 +312,9 @@ export default function ChatPage() {
     setInput("");
   };
 
+  const lastAiMessage = [...messages].reverse().find(m => m.role !== 'user');
+  const isSpeakingLastMessage = lastAiMessage && speakingMessageId === lastAiMessage.id;
+
   return (
     <div
       className="h-screen w-full text-gray-200 font-sans selection:bg-[#8b5cf6]/30 flex overflow-hidden relative"
@@ -406,6 +421,16 @@ export default function ChatPage() {
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
                   <Button
                     type="button"
+                    onClick={() => lastAiMessage && toggleSpeak(lastAiMessage.id, getMessageText(lastAiMessage))}
+                    disabled={!lastAiMessage || isLoading || quotaError}
+                    className={`h-10 w-10 rounded-full transition-all shadow-none ${isSpeakingLastMessage ? 'bg-[#8b5cf6]/20 text-[#8b5cf6] hover:bg-[#8b5cf6]/30 animate-pulse' : 'bg-transparent text-gray-400 hover:text-gray-200 hover:bg-white/[0.05]'}`}
+                    size="icon"
+                    title="Read Last Message"
+                  >
+                    {isSpeakingLastMessage ? <Square className="w-4 h-4" fill="currentColor" /> : <Volume2 className="w-4 h-4" />}
+                  </Button>
+                  <Button
+                    type="button"
                     onClick={toggleListening}
                     disabled={isLoading || quotaError}
                     className={`h-10 w-10 rounded-full transition-all shadow-none ${isListening ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30 animate-pulse' : 'bg-transparent text-gray-400 hover:text-gray-200 hover:bg-white/[0.05]'}`}
@@ -493,16 +518,6 @@ export default function ChatPage() {
                                   {getMessageText(m)}
                                 </ReactMarkdown>
                               </div>
-                              <div className="flex items-center mt-1">
-                                <button
-                                  onClick={() => toggleSpeak(m.id, getMessageText(m))}
-                                  className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] transition-colors ${speakingMessageId === m.id ? 'bg-[#8b5cf6]/20 text-[#8b5cf6]' : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.05]'}`}
-                                  title={speakingMessageId === m.id ? "Stop Reading" : "Read Aloud"}
-                                >
-                                  {speakingMessageId === m.id ? <Square size={12} fill="currentColor" /> : <Volume2 size={12} />}
-                                  {speakingMessageId === m.id ? "Stop" : "Read aloud"}
-                                </button>
-                              </div>
                             </div>
                           )}
                         </div>
@@ -549,6 +564,16 @@ export default function ChatPage() {
                     disabled={isLoading || quotaError}
                   />
                   <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                    <Button
+                      type="button"
+                      onClick={() => lastAiMessage && toggleSpeak(lastAiMessage.id, getMessageText(lastAiMessage))}
+                      disabled={!lastAiMessage || isLoading || quotaError}
+                      className={`h-10 w-10 rounded-full transition-all shadow-none ${isSpeakingLastMessage ? 'bg-[#8b5cf6]/20 text-[#8b5cf6] hover:bg-[#8b5cf6]/30 animate-pulse' : 'bg-transparent text-gray-400 hover:text-gray-200 hover:bg-white/[0.05]'}`}
+                      size="icon"
+                      title="Read Last Message"
+                    >
+                      {isSpeakingLastMessage ? <Square className="w-4 h-4" fill="currentColor" /> : <Volume2 className="w-4 h-4" />}
+                    </Button>
                     <Button
                       type="button"
                       onClick={toggleListening}
