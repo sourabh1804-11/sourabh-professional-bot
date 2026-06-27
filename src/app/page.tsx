@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, User, Sparkles, AlertCircle, RefreshCcw, ExternalLink, Bot, Mic, MicOff, Volume2, Square, Github, Linkedin, FileText, Menu, X, Home } from "lucide-react";
+import { Send, User, Sparkles, AlertCircle, RefreshCcw, ExternalLink, Bot, Mic, MicOff, Volume2, Square, Home } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
