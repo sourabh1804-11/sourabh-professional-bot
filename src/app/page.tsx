@@ -102,6 +102,30 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [quotaError, setQuotaError] = useState<any>(null);
 
+  // --- Browser Back Button Support (Multilayered UX) ---
+  const hasPushedState = useRef(false);
+
+  useEffect(() => {
+    if (messages.length > 0 && !hasPushedState.current) {
+      window.history.pushState({ chatOpen: true }, "");
+      hasPushedState.current = true;
+    }
+  }, [messages.length]);
+
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      if (!e.state?.chatOpen && hasPushedState.current) {
+        hasPushedState.current = false;
+        setChatId(crypto.randomUUID());
+        setMessages([]);
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+  // -----------------------------------------------------
+
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -231,9 +255,15 @@ export default function ChatPage() {
   };
 
   const startNewChat = () => {
-    setChatId(crypto.randomUUID());
-    setMessages([]);
-    setIsSidebarOpen(false);
+    if (hasPushedState.current) {
+      // If we are currently in a chat layer, use the browser back button to trigger the popstate 
+      // event, which safely resets the state without endlessly stacking browser history.
+      window.history.back();
+    } else {
+      setChatId(crypto.randomUUID());
+      setMessages([]);
+      setIsSidebarOpen(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
