@@ -4,7 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 
 import { useEffect, useRef, useState } from "react";
-import { Send, User, Sparkles, AlertCircle, RefreshCcw, ExternalLink, Bot, Mic, MicOff, Volume2, Square } from "lucide-react";
+import { Send, User, Sparkles, AlertCircle, RefreshCcw, ExternalLink, Bot, Mic, MicOff, Volume2, Square, Github, Linkedin, FileText, Menu, X, Home } from "lucide-react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -528,6 +528,15 @@ export default function ChatPage() {
             )}
           </div>
         </ScrollArea>
+        <div className="p-4 border-t border-white/10">
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full flex items-center justify-center gap-2 bg-[#6366f1]/20 hover:bg-[#6366f1]/30 text-white py-3 rounded-xl transition-colors font-medium border border-[#6366f1]/30"
+          >
+            <Home size={18} />
+            Back to Home
+          </button>
+        </div>
       </div>
 
       {/* Main Chat Container */}
@@ -542,7 +551,17 @@ export default function ChatPage() {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
           </button>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-6 pointer-events-auto">
+            <button 
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+              title="Home"
+            >
+              <Home size={20} />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 ml-4">
             <span className="font-semibold text-lg tracking-tight text-white flex items-center gap-2">
               <Sparkles size={18} className="text-[#8b5cf6]" />
               AskSourabh
